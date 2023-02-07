@@ -36,6 +36,9 @@ ART_BUILD_HOST_DEBUG := false
 # Bootloader
 TARGET_NO_BOOTLOADER := true
 
+# Display
+TARGET_GRALLOC_HANDLE_HAS_RESERVED_SIZE := true
+
 # Filesystem
 TARGET_FS_CONFIG_GEN := $(COMMON_PATH)/config.fs
 
