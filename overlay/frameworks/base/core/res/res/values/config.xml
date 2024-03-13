@@ -290,6 +290,6 @@
          in certain places to reduce RAM footprint. Allows to tune down 
          device's memory use without going to the point of causing applications to turn
          off features. -->
-    <bool name="config_avoidGfxAccel">false</bool>
+    <bool name="config_avoidGfxAccel">true</bool>
 
 </resources>
