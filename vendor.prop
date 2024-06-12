@@ -211,6 +211,7 @@ ro.surface_flinger.enable_layer_caching=true
 debug.sf.layer_caching_active_layer_timeout_ms=1000
 
 # USB
+ro.usb.uvc.enabled=true
 sys.usb.mtp.batchcancel=1
 vendor.usb.controller=4e00000.dwc3
 vendor.usb.device=4e00000.ssusb
