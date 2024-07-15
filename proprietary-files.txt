@@ -220,7 +220,7 @@ vendor/lib/libdeccfg.so|5f106d7549000e2c514daed542411f6ce3b296f9
 vendor/lib/vendor.dolby.hardware.dms@2.0.so|f396f196101d38575b79bee06403018acb6d23b6
 vendor/lib64/libdapparamstorage.so|783eb2b76ea43de6db979f1e0c427a5d6049c42f
 vendor/lib64/libdeccfg.so|e6aef698804d4ca8c3d7173432fbb6dbeb5b2dff
-vendor/lib64/libdlbdsservice.so|ccb0d22f8fa8a68812283c41cb5c195b0dd70eac
+vendor/lib64/libdlbdsservice.so|ccb0d22f8fa8a68812283c41cb5c195b0dd70eac|a1f03fe4882958b31e11d0c398673eb65f8c7d15
 vendor/lib64/vendor.dolby.hardware.dms@2.0-impl.so|5947de2cc48c50b7eae0092533e20278dfd6cd0d
 vendor/lib64/vendor.dolby.hardware.dms@2.0.so|9384291b27935dc6caad7a9206a16def21825e68
 
