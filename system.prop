@@ -70,3 +70,6 @@ ro.vendor.qti.sys.fw.bservice_limit=128
 
 # SystemUI
 persist.sysui.disableBlur=true
+
+## Vsync
+debug.cpurend.vsync=falses
