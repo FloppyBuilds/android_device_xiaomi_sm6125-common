@@ -43,6 +43,8 @@ PRODUCT_PACKAGES += \
     libldacBT_abr
 
 # Camera
+TARGET_BUILD_DEVICE_AS_WEBCAM := true
+
 PRODUCT_PACKAGES += \
     android.hardware.camera.provider-service_32.lineage \
     camera.qcom
