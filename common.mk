@@ -287,6 +287,8 @@ PRODUCT_COPY_FILES += \
     $(COMMON_PATH)/configs/wifi/wpa_supplicant_overlay.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant_overlay.conf \
     $(COMMON_PATH)/configs/wifi/WCNSS_qcom_cfg.ini:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/WCNSS_qcom_cfg.ini
 
+# Private keys
+-include vendor/lineage-priv/keys/keys.mk
 
 # Inherit the proprietary files
 $(call inherit-product, vendor/xiaomi/sm6125-common/sm6125-common-vendor.mk)
