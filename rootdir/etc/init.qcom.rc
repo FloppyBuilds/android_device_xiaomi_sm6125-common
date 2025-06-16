@@ -417,9 +417,6 @@ on property:sys.boot_completed=1
     #Reinit lmkd to reconfigure lmkd properties
     setprop lmkd.reinit 1
 
-     # Stop statsd
-    stop statsd
-
 on property:persist.vendor.radio.atfwd.start=false
     stop vendor.atfwd
 
