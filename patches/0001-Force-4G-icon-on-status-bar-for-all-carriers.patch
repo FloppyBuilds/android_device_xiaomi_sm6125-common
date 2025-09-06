@@ -1,0 +1,35 @@
+From 1dfb0259f4c5462a089760b6ea7581c533c66b69 Mon Sep 17 00:00:00 2001
+From: Flopster101 <nahuelgomez329@gmail.com>
+Date: Fri, 5 Sep 2025 22:44:14 -0300
+Subject: [PATCH] Force 4G icon on status bar for all carriers
+
+Signed-off-by: Flopster101 <nahuelgomez329@gmail.com>
+---
+ .../src/com/android/settingslib/mobile/MobileMappings.java   | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/packages/SettingsLib/src/com/android/settingslib/mobile/MobileMappings.java b/packages/SettingsLib/src/com/android/settingslib/mobile/MobileMappings.java
+index cf52eb3ab..e1516817d 100644
+--- a/packages/SettingsLib/src/com/android/settingslib/mobile/MobileMappings.java
++++ b/packages/SettingsLib/src/com/android/settingslib/mobile/MobileMappings.java
+@@ -245,14 +245,15 @@ public class MobileMappings {
+             if (b != null) {
+                 config.alwaysShowDataRatIcon = b.getBoolean(
+                         CarrierConfigManager.KEY_ALWAYS_SHOW_DATA_RAT_ICON_BOOL);
+-                config.show4gForLte = b.getBoolean(
+-                        CarrierConfigManager.KEY_SHOW_4G_FOR_LTE_DATA_ICON_BOOL);
++                config.show4gForLte = true;
+                 config.show4glteForLte = b.getBoolean(
+                         CarrierConfigManager.KEY_SHOW_4GLTE_FOR_LTE_DATA_ICON_BOOL);
+                 config.show4gFor3g = b.getBoolean(
+                         CarrierConfigManager.KEY_SHOW_4G_FOR_3G_DATA_ICON_BOOL);
+                 config.hideLtePlus = b.getBoolean(
+                         CarrierConfigManager.KEY_HIDE_LTE_PLUS_DATA_ICON_BOOL);
++            } else {
++                config.show4gForLte = true;
+             }
+ 
+             SubscriptionManager subscriptionManager =
+-- 
+2.51.0
+
