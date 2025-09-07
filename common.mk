@@ -46,8 +46,7 @@ TARGET_BOARD_PLATFORM := trinket
 
 # Camera
 PRODUCT_PACKAGES += \
-    android.hardware.camera.provider-service_32.lineage \
-    camera.qcom
+    android.hardware.camera.provider-service_32.lineage
 
 # Charger
 PRODUCT_PACKAGES += \
