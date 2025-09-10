@@ -77,7 +77,7 @@ PRODUCT_PACKAGES += \
 
 # Dolby
 PRODUCT_PACKAGES += \
-    XiaomiDolby
+    XiaomiDolbySM6125
 
 # DRM
 PRODUCT_PACKAGES += \
