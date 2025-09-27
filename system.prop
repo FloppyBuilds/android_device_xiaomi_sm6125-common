@@ -1,6 +1,3 @@
-# Blur
-persist.sys.sf.disable_blurs=1
-
 # Camera
 vendor.camera.aux.packageexcludelist=org.telegram.messenger,org.thunderdog.challegram,us.zoom.videomeetings
 
