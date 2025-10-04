@@ -35,6 +35,7 @@ import co.aospa.dolby.xiaomi.DolbyConstants.Companion.PREF_VOLUME
 import co.aospa.dolby.xiaomi.DolbyConstants.Companion.dlog
 import co.aospa.dolby.xiaomi.DolbyController
 import co.aospa.dolby.xiaomi.R
+import co.aospa.dolby.xiaomi.device.AudioDeviceManager
 import com.android.settingslib.widget.MainSwitchPreference
 
 class DolbySettingsFragment : PreferenceFragment(),
@@ -74,27 +75,24 @@ class DolbySettingsFragment : PreferenceFragment(),
         findPreference<Preference>(PREF_RESET)!!
     }
 
-    private val dolbyController by lazy { DolbyController.getInstance(context) }
-    private val audioManager by lazy { context.getSystemService(AudioManager::class.java) }
+    private val dolbyController by lazy { DolbyController.getInstance(context!!) }
+    private val audioManager by lazy { context!!.getSystemService(AudioManager::class.java) }
     private val handler = Handler()
+    private lateinit var audioDeviceManager: AudioDeviceManager
 
-    private var isOnSpeaker = true
+    private var currentDevice: AudioDeviceInfo? = null
         set(value) {
             if (field == value) return
             field = value
-            dlog(TAG, "setIsOnSpeaker($value)")
+            dlog(TAG, "setCurrentDevice(${audioDeviceManager.getDeviceTypeName(value)})")
             updateProfileSpecificPrefs()
         }
 
-    private val audioDeviceCallback = object : AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-            dlog(TAG, "onAudioDevicesAdded")
-            updateSpeakerState()
-        }
-
-        override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-            dlog(TAG, "onAudioDevicesRemoved")
-            updateSpeakerState()
+    private val audioOutputCallback = object : AudioDeviceManager.AudioOutputChangedCallback {
+        override fun onAudioOutputChanged(currentDevice: AudioDeviceInfo?) {
+            dlog(TAG, "onAudioOutputChanged: ${audioDeviceManager.getDeviceTypeName(currentDevice)}")
+            this@DolbySettingsFragment.currentDevice = currentDevice
+            updateDeviceInfo()
         }
     }
 
@@ -102,9 +100,16 @@ class DolbySettingsFragment : PreferenceFragment(),
         dlog(TAG, "onCreatePreferences")
         addPreferencesFromResource(R.xml.dolby_settings)
 
+        // Initialize audio device manager
+        audioDeviceManager = AudioDeviceManager(context!!, handler)
+
+        // Initialize current device
+        currentDevice = dolbyController.getCurrentDevice()
+
         val profile = dolbyController.profile
-        preferenceManager.preferenceDataStore = DolbyPreferenceStore(context).also {
+        preferenceManager.preferenceDataStore = DolbyPreferenceStore(context!!).also {
             it.profile = profile
+            it.setCurrentDevice(currentDevice)
         }
 
         val dsOn = dolbyController.dsOn
@@ -119,7 +124,7 @@ class DolbySettingsFragment : PreferenceFragment(),
                 summary = "%s"
                 value = profile.toString()
             } else {
-                summary = context.getString(R.string.dolby_unknown)
+                summary = context!!.getString(R.string.dolby_unknown)
             }
         }
 
@@ -136,26 +141,32 @@ class DolbySettingsFragment : PreferenceFragment(),
             updateProfileSpecificPrefs()
             Toast.makeText(
                 context,
-                context.getString(R.string.dolby_reset_profile_toast, profilePref.summary),
+                context!!.getString(R.string.dolby_reset_profile_toast, profilePref.summary),
                 Toast.LENGTH_SHORT
             ).show()
             true
         }
 
-        audioManager!!.registerAudioDeviceCallback(audioDeviceCallback, handler)
-        updateSpeakerState()
+        audioDeviceManager.addCallback(audioOutputCallback)
+        updateDeviceInfo()
         updateProfileSpecificPrefs()
     }
 
     override fun onDestroyView() {
         dlog(TAG, "onDestroyView")
-        audioManager!!.unregisterAudioDeviceCallback(audioDeviceCallback)
+        if (::audioDeviceManager.isInitialized) {
+            audioDeviceManager.removeCallback(audioOutputCallback)
+        }
         super.onDestroyView()
     }
 
     override fun onResume() {
         super.onResume()
-        updateProfileSpecificPrefs()
+        // Check for device changes when app resumes (e.g., after switching outputs)
+        if (::audioDeviceManager.isInitialized) {
+            dolbyController.checkForDeviceChange()
+            updateProfileSpecificPrefs()
+        }
     }
 
     override fun onPreferenceChange(preference: Preference, newValue: Any): Boolean {
@@ -163,7 +174,7 @@ class DolbySettingsFragment : PreferenceFragment(),
         when (preference.key) {
             PREF_PROFILE -> {
                 val profile = newValue.toString().toInt()
-                dolbyController.profile = profile
+                dolbyController.setDeviceProfile(currentDevice, profile)
                 (preferenceManager.preferenceDataStore as DolbyPreferenceStore).profile = profile
                 updateProfileIcon(profile)
                 updateProfileSpecificPrefs()
@@ -204,25 +215,39 @@ class DolbySettingsFragment : PreferenceFragment(),
 
     override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
         dlog(TAG, "onCheckedChanged($isChecked)")
-        dolbyController.dsOn = isChecked
+        dolbyController.setDeviceEnabled(currentDevice, isChecked)
         profilePref.setEnabled(isChecked)
         updateProfileSpecificPrefs()
     }
 
-    private fun updateSpeakerState() {
-        val device = audioManager!!.getDevicesForAttributes(ATTRIBUTES_MEDIA)[0]
-        isOnSpeaker = (device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)
+    private fun updateDeviceInfo() {
+        // Update the preference store with the current device
+        (preferenceManager.preferenceDataStore as? DolbyPreferenceStore)?.setCurrentDevice(currentDevice)
+
+        // Update the UI to reflect the current device state
+        val deviceName = audioDeviceManager.getDeviceTypeName(currentDevice)
+        dlog(TAG, "updateDeviceInfo: current device = $deviceName")
+
+        // Update the switch state based on device-specific settings
+        val deviceEnabled = dolbyController.getDeviceEnabled(currentDevice)
+        switchBar.setChecked(deviceEnabled)
+
+        // Update profile based on device-specific settings
+        val deviceProfile = dolbyController.getDeviceProfile(currentDevice)
+        profilePref.value = deviceProfile.toString()
+        updateProfileIcon(deviceProfile)
     }
 
     private fun updateProfileSpecificPrefs() {
-        val unknownRes = context.getString(R.string.dolby_unknown)
-        val headphoneRes = context.getString(R.string.dolby_connect_headphones)
+        val unknownRes = context!!.getString(R.string.dolby_unknown)
+        val headphoneRes = context!!.getString(R.string.dolby_connect_headphones)
         val dsOn = dolbyController.dsOn
         val currentProfile = dolbyController.profile
+        val isOnSpeaker = audioDeviceManager.isSpeakerDevice(currentDevice)
 
         dlog(
             TAG, "updateProfileSpecificPrefs: dsOn=$dsOn currentProfile=$currentProfile"
-                    + " isOnSpeaker=$isOnSpeaker"
+                    + " device=${audioDeviceManager.getDeviceTypeName(currentDevice)} isOnSpeaker=$isOnSpeaker"
         )
 
         val enable = dsOn && (currentProfile != -1)

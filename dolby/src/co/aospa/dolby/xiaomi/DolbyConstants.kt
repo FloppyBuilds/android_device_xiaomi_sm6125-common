@@ -39,6 +39,14 @@ class DolbyConstants {
         const val PREF_BASS = "dolby_bass"
         const val PREF_VOLUME = "dolby_volume"
         const val PREF_RESET = "dolby_reset"
+        
+        // Device-specific preferences
+        const val PREF_DEVICE_ENABLE = "dolby_device_enable"
+        const val PREF_DEVICE_PROFILE = "dolby_device_profile"
+
+        // Migration and versioning
+        const val PREF_MIGRATION_DONE = "dolby_device_specific_migration_done"
+        const val CURRENT_VERSION = 2 // Increment this when making breaking changes
 
         val PROFILE_SPECIFIC_PREFS = setOf(
             PREF_PRESET,
@@ -49,6 +57,11 @@ class DolbyConstants {
             PREF_DIALOGUE,
             PREF_BASS,
             PREF_VOLUME
+        )
+
+        val DEVICE_SPECIFIC_PREFS = setOf(
+            PREF_DEVICE_ENABLE,
+            PREF_DEVICE_PROFILE
         )
 
         fun dlog(tag: String, msg: String) {

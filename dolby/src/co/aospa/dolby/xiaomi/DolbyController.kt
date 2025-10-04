@@ -18,6 +18,7 @@ import androidx.preference.PreferenceManager
 import co.aospa.dolby.xiaomi.DolbyConstants.Companion.dlog
 import co.aospa.dolby.xiaomi.DolbyConstants.DsParam
 import co.aospa.dolby.xiaomi.R
+import co.aospa.dolby.xiaomi.device.AudioDeviceManager
 
 internal class DolbyController private constructor(
     private val context: Context
@@ -25,6 +26,8 @@ internal class DolbyController private constructor(
     private var dolbyEffect = DolbyAudioEffect(EFFECT_PRIORITY, audioSession = 0)
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val handler = Handler(context.mainLooper)
+    private val audioDeviceManager = AudioDeviceManager(context, handler)
+    private var currentDevice: AudioDeviceInfo? = null
 
     // Restore current profile on every media session
     private val playbackCallback = object : AudioPlaybackCallback() {
@@ -33,20 +36,19 @@ internal class DolbyController private constructor(
                 it.playerState == AudioPlaybackConfiguration.PLAYER_STATE_STARTED
             }
             dlog(TAG, "onPlaybackConfigChanged: isPlaying=$isPlaying")
-            if (isPlaying)
+            if (isPlaying) {
+                // Check for device changes when music starts
+                audioDeviceManager.checkForDeviceChange()
                 setCurrentProfile()
+            }
         }
     }
 
-    // Restore current profile on audio device change
-    private val audioDeviceCallback = object : AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-            dlog(TAG, "onAudioDevicesAdded")
-            setCurrentProfile()
-        }
-
-        override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-            dlog(TAG, "onAudioDevicesRemoved")
+    // Handle audio output changes with per-device configuration
+    private val audioOutputCallback = object : AudioDeviceManager.AudioOutputChangedCallback {
+        override fun onAudioOutputChanged(currentDevice: AudioDeviceInfo?) {
+            dlog(TAG, "onAudioOutputChanged: ${audioDeviceManager.getDeviceTypeName(currentDevice)}")
+            this@DolbyController.currentDevice = currentDevice
             setCurrentProfile()
         }
     }
@@ -58,37 +60,94 @@ internal class DolbyController private constructor(
             dlog(TAG, "setRegisterCallbacks($value)")
             if (value) {
                 audioManager!!.registerAudioPlaybackCallback(playbackCallback, handler)
-                audioManager.registerAudioDeviceCallback(audioDeviceCallback, handler)
+                audioDeviceManager.addCallback(audioOutputCallback)
             } else {
                 audioManager!!.unregisterAudioPlaybackCallback(playbackCallback)
-                audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
+                audioDeviceManager.removeCallback(audioOutputCallback)
             }
         }
 
     var dsOn: Boolean
-        get() =
-            dolbyEffect.dsOn.also {
-                dlog(TAG, "getDsOn: $it")
-            }
+        get() = getDeviceEnabled(currentDevice)
         set(value) {
             dlog(TAG, "setDsOn: $value")
-            checkEffect()
-            dolbyEffect.dsOn = value
-            registerCallbacks = value
-            if (value)
-                setCurrentProfile()
+            setDeviceEnabled(currentDevice, value)
         }
 
+    fun getDeviceEnabled(device: AudioDeviceInfo?): Boolean {
+        val prefs = context.getSharedPreferences("device_${getDevicePrefsKey(device)}", Context.MODE_PRIVATE)
+        val globalEnabled = PreferenceManager.getDefaultSharedPreferences(context)
+            .getBoolean(DolbyConstants.PREF_ENABLE, true)
+
+        // Default to disabled for speakers, enabled for other devices
+        val defaultEnabled = if (audioDeviceManager.isSpeakerDevice(device)) {
+            false
+        } else {
+            globalEnabled
+        }
+        
+        val deviceEnabled = prefs.getBoolean(DolbyConstants.PREF_DEVICE_ENABLE, defaultEnabled)
+        dlog(TAG, "getDeviceEnabled(${audioDeviceManager.getDeviceTypeName(device)}): $deviceEnabled (default: $defaultEnabled)")
+        return deviceEnabled
+    }
+
+    fun setDeviceEnabled(device: AudioDeviceInfo?, enabled: Boolean) {
+        dlog(TAG, "setDeviceEnabled(${audioDeviceManager.getDeviceTypeName(device)}, $enabled)")
+        val prefs = context.getSharedPreferences("device_${getDevicePrefsKey(device)}", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(DolbyConstants.PREF_DEVICE_ENABLE, enabled).apply()
+
+        // Update the global enable state if this is the current device
+        if (device == currentDevice) {
+            updateDolbyEffect()
+        }
+    }
+
+    private fun getDevicePrefsKey(device: AudioDeviceInfo?): String {
+        return audioDeviceManager.getDeviceTypeName(device).lowercase().replace(" ", "_")
+    }
+
     var profile: Int
-        get() =
-            dolbyEffect.profile.also {
-                dlog(TAG, "getProfile: $it")
-            }
+        get() = getDeviceProfile(currentDevice)
         set(value) {
             dlog(TAG, "setProfile: $value")
-            checkEffect()
-            dolbyEffect.profile = value
+            setDeviceProfile(currentDevice, value)
         }
+
+    fun getDeviceProfile(device: AudioDeviceInfo?): Int {
+        val prefs = context.getSharedPreferences("device_${getDevicePrefsKey(device)}", Context.MODE_PRIVATE)
+        val globalProfile = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(DolbyConstants.PREF_PROFILE, "0")!!.toInt()
+        val deviceProfile = prefs.getInt(DolbyConstants.PREF_DEVICE_PROFILE, globalProfile)
+        dlog(TAG, "getDeviceProfile(${audioDeviceManager.getDeviceTypeName(device)}): $deviceProfile")
+        return deviceProfile
+    }
+
+    fun setDeviceProfile(device: AudioDeviceInfo?, profile: Int) {
+        dlog(TAG, "setDeviceProfile(${audioDeviceManager.getDeviceTypeName(device)}, $profile)")
+        val prefs = context.getSharedPreferences("device_${getDevicePrefsKey(device)}", Context.MODE_PRIVATE)
+        prefs.edit().putInt(DolbyConstants.PREF_DEVICE_PROFILE, profile).apply()
+
+        // Update the effect if this is the current device
+        if (device == currentDevice) {
+            updateDolbyEffect()
+        }
+    }
+
+    private fun updateDolbyEffect() {
+        val enabled = getDeviceEnabled(currentDevice)
+        val profile = getDeviceProfile(currentDevice)
+
+        dlog(TAG, "updateDolbyEffect: enabled=$enabled, profile=$profile, device=${audioDeviceManager.getDeviceTypeName(currentDevice)}")
+
+        checkEffect()
+        dolbyEffect.dsOn = enabled
+        dolbyEffect.profile = profile
+        registerCallbacks = enabled
+
+        if (enabled) {
+            setCurrentProfile()
+        }
+    }
 
     init {
         dlog(TAG, "initialized")
@@ -97,9 +156,13 @@ internal class DolbyController private constructor(
     fun onBootCompleted() {
         dlog(TAG, "onBootCompleted")
 
+        // Initialize current device
+        currentDevice = audioDeviceManager.getCurrentDevice()
+        dlog(TAG, "Initial device: ${audioDeviceManager.getDeviceTypeName(currentDevice)}")
+
         // Restore our main settings
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        dsOn = prefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
+        val globalEnabled = prefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
 
         context.resources.getStringArray(R.array.dolby_profile_values)
             .map { it.toInt() }
@@ -110,8 +173,64 @@ internal class DolbyController private constructor(
                 restoreSettings(profile)
             }
 
-        // Finally restore the current profile.
+        // Initialize device-specific settings if they don't exist
+        initializeDeviceDefaults()
+
+        // Finally restore the current profile for the current device
         setCurrentProfile()
+    }
+
+    private fun initializeDeviceDefaults() {
+        // Check if this is a first-time setup or upgrade
+        val defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val migrationDone = defaultPrefs.getBoolean(DolbyConstants.PREF_MIGRATION_DONE, false)
+        val currentVersion = defaultPrefs.getInt("dolby_prefs_version", 1)
+
+        if (!migrationDone || currentVersion < DolbyConstants.CURRENT_VERSION) {
+            dlog(TAG, "Migration needed - current version: $currentVersion, target: ${DolbyConstants.CURRENT_VERSION}")
+
+            // Clear any existing device-specific preferences to ensure clean state
+            clearDeviceSpecificPreferences()
+
+            // Set speaker as disabled by default (override any previous state)
+            val speakerPrefs = context.getSharedPreferences("device_speaker", Context.MODE_PRIVATE)
+            speakerPrefs.edit().putBoolean(DolbyConstants.PREF_DEVICE_ENABLE, false).apply()
+
+            // Mark migration as complete and update version
+            defaultPrefs.edit()
+                .putBoolean(DolbyConstants.PREF_MIGRATION_DONE, true)
+                .putInt("dolby_prefs_version", DolbyConstants.CURRENT_VERSION)
+                .apply()
+
+            dlog(TAG, "Device-specific preferences migrated - speaker disabled by default")
+        } else {
+            // Normal initialization - only set defaults if preferences don't exist
+            val speakerPrefs = context.getSharedPreferences("device_speaker", Context.MODE_PRIVATE)
+            if (!speakerPrefs.contains(DolbyConstants.PREF_DEVICE_ENABLE)) {
+                speakerPrefs.edit().putBoolean(DolbyConstants.PREF_DEVICE_ENABLE, false).apply()
+                dlog(TAG, "Initialized speaker device with disabled state")
+            }
+        }
+    }
+
+    private fun clearDeviceSpecificPreferences() {
+        dlog(TAG, "Clearing existing device-specific preferences for clean upgrade")
+
+        // List of device types to clear
+        val deviceTypes = listOf(
+            "speaker", "wired_headphones", "wired_headset", "bt_a2dp", "bt_sco",
+            "usb_headset", "usb_device", "hdmi", "line_analog", "line_digital"
+        )
+
+        deviceTypes.forEach { deviceType ->
+            try {
+                val prefs = context.getSharedPreferences("device_$deviceType", Context.MODE_PRIVATE)
+                prefs.edit().clear().apply()
+                dlog(TAG, "Cleared preferences for device: $deviceType")
+            } catch (e: Exception) {
+                dlog(TAG, "Failed to clear preferences for device $deviceType: ${e.message}")
+            }
+        }
     }
 
     private fun restoreSettings(profile: Int) {
@@ -170,8 +289,17 @@ internal class DolbyController private constructor(
 
     private fun setCurrentProfile() {
         dlog(TAG, "setCurrentProfile")
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        profile = prefs.getString(DolbyConstants.PREF_PROFILE, "0" /*dynamic*/)!!.toInt()
+        updateDolbyEffect()
+    }
+
+    fun checkForDeviceChange() {
+        audioDeviceManager.checkForDeviceChange()
+    }
+
+    fun getCurrentDevice(): AudioDeviceInfo? = currentDevice
+
+    fun getDeviceTypeName(device: AudioDeviceInfo?): String {
+        return audioDeviceManager.getDeviceTypeName(device)
     }
 
     fun getProfileName(): String? {
@@ -189,6 +317,13 @@ internal class DolbyController private constructor(
         checkEffect()
         dolbyEffect.resetProfileSpecificSettings()
         context.deleteSharedPreferences("profile_$profile")
+    }
+
+    fun resetAllDeviceSpecificSettings() {
+        dlog(TAG, "resetAllDeviceSpecificSettings")
+        clearDeviceSpecificPreferences()
+        initializeDeviceDefaults()
+        setCurrentProfile()
     }
 
     fun getPreset(profile: Int = this.profile): String {
