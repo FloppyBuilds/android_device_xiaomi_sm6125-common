@@ -185,6 +185,7 @@
         <item>"/system/lib64/libhwui.so"</item>
         <item>"/vendor/lib64/egl/libGLESv2_adreno.so"</item>
         <item>"/vendor/lib64/libgsl.so"</item>
+        <item>"/system/system_ext/priv-app/SpeakerFX/SpeakerFX.apk"</item>
     </string-array>
 
     <!-- Whether a software navigation bar should be shown. NOTE: in the future this may be
