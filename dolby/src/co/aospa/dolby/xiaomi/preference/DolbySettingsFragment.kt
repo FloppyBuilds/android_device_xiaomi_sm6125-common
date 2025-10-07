@@ -230,7 +230,9 @@ class DolbySettingsFragment : PreferenceFragment(),
 
         // Update the switch state based on device-specific settings
         val deviceEnabled = dolbyController.getDeviceEnabled(currentDevice)
+        switchBar.removeOnSwitchChangeListener(this)
         switchBar.setChecked(deviceEnabled)
+        switchBar.addOnSwitchChangeListener(this)
 
         // Update profile based on device-specific settings
         val deviceProfile = dolbyController.getDeviceProfile(currentDevice)

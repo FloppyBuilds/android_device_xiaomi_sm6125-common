@@ -28,6 +28,7 @@ internal class DolbyController private constructor(
     private val handler = Handler(context.mainLooper)
     private val audioDeviceManager = AudioDeviceManager(context, handler)
     private var currentDevice: AudioDeviceInfo? = null
+    private var isUpdatingEffect = false
 
     // Restore current profile on every media session
     private val playbackCallback = object : AudioPlaybackCallback() {
@@ -49,7 +50,10 @@ internal class DolbyController private constructor(
         override fun onAudioOutputChanged(currentDevice: AudioDeviceInfo?) {
             dlog(TAG, "onAudioOutputChanged: ${audioDeviceManager.getDeviceTypeName(currentDevice)}")
             this@DolbyController.currentDevice = currentDevice
-            setCurrentProfile()
+            // Only update profile if we're not in the middle of updating the effect to avoid circular calls
+            if (!isUpdatingEffect) {
+                setCurrentProfile()
+            }
         }
     }
 
@@ -134,18 +138,28 @@ internal class DolbyController private constructor(
     }
 
     private fun updateDolbyEffect() {
-        val enabled = getDeviceEnabled(currentDevice)
-        val profile = getDeviceProfile(currentDevice)
+        if (isUpdatingEffect) {
+            dlog(TAG, "updateDolbyEffect: already updating, skipping to avoid circular calls")
+            return
+        }
 
-        dlog(TAG, "updateDolbyEffect: enabled=$enabled, profile=$profile, device=${audioDeviceManager.getDeviceTypeName(currentDevice)}")
+        isUpdatingEffect = true
+        try {
+            val enabled = getDeviceEnabled(currentDevice)
+            val profile = getDeviceProfile(currentDevice)
 
-        checkEffect()
-        dolbyEffect.dsOn = enabled
-        dolbyEffect.profile = profile
-        registerCallbacks = enabled
+            dlog(TAG, "updateDolbyEffect: enabled=$enabled, profile=$profile, device=${audioDeviceManager.getDeviceTypeName(currentDevice)}")
 
-        if (enabled) {
-            setCurrentProfile()
+            checkEffect()
+            dolbyEffect.dsOn = enabled
+            dolbyEffect.profile = profile
+            registerCallbacks = enabled
+
+            if (enabled) {
+                applyCurrentProfileSettings()
+            }
+        } finally {
+            isUpdatingEffect = false
         }
     }
 
@@ -289,7 +303,17 @@ internal class DolbyController private constructor(
 
     private fun setCurrentProfile() {
         dlog(TAG, "setCurrentProfile")
-        updateDolbyEffect()
+        // Only update effect if we're not already updating to avoid circular calls
+        if (!isUpdatingEffect) {
+            updateDolbyEffect()
+        }
+    }
+
+    private fun applyCurrentProfileSettings() {
+        dlog(TAG, "applyCurrentProfileSettings")
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val profile = getDeviceProfile(currentDevice)
+        restoreSettings(profile)
     }
 
     fun checkForDeviceChange() {

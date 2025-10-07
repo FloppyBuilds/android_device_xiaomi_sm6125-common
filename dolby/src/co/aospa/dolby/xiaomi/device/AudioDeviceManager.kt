@@ -45,9 +45,11 @@ class AudioDeviceManager(
         if (wasEmpty) {
             audioManager.registerAudioDeviceCallback(this, handler)
             startPeriodicMonitoring()
-            // Notify with current device immediately
+            // Notify with current device immediately, but post it to avoid blocking
             currentDevice = getCurrentDevice()
-            callback.onAudioOutputChanged(currentDevice)
+            handler.post {
+                callback.onAudioOutputChanged(currentDevice)
+            }
         }
     }
 
