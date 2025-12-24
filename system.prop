@@ -76,3 +76,8 @@ ro.vendor.qti.sys.fw.bservice_limit=128
 
 ## Vsync
 debug.cpurend.vsync=false
+
+# Graphics
+debug.renderengine.backend=skiavkthreaded
+debug.renderengine.blur_algorithm=kawase
+ro.surface_flinger.supports_background_blur=1
