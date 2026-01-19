@@ -16,7 +16,7 @@
 -->
 <config>
 
-    <!-- Dolby -->
+    <!-- Dolby (device-specific package mapping) -->
     <install-in-user-type package="co.aospa.dolby.xiaomi">
         <install-in user-type="FULL" />
         <install-in user-type="PROFILE" />
