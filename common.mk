@@ -75,10 +75,6 @@ PRODUCT_PACKAGES += \
     gralloc.qcom \
     hwcomposer.qcom
 
-# Dolby
-PRODUCT_PACKAGES += \
-    XiaomiDolby
-
 # DRM
 PRODUCT_PACKAGES += \
     android.hardware.drm-service.clearkey

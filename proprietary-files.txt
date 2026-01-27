@@ -208,22 +208,6 @@ vendor/etc/init/dpmQmiMgr.rc
 vendor/lib64/com.qualcomm.qti.dpm.api@1.0.so;MODULE_SUFFIX=_vendor
 vendor/lib64/libdpmqmihal.so
 
-# Dolby
-vendor/bin/hw/vendor.dolby.hardware.dms@2.0-service|156145823e172a33ac6c7ed47f91c326547842d5
-vendor/etc/dolby/dax-default.xml|92abb5623f960f9cf413469727e14e923ba1a20a
-vendor/etc/dolby/dax-rubypro.xml|86d03586e160a9bca62c6a533c23504c6d965867
-vendor/etc/init/vendor.dolby.hardware.dms@2.0-service.rc|29296ebfe89b2697fec573be73cc3757fd97bed6
-vendor/etc/vintf/manifest/manifest_vendor.dolby.hardware.dms.xml|c8095f649de19b80271fb429b4b6b439297a0678
-vendor/lib/soundfx/libswdap.so|e1fcaf1c31140d9b3f8605ffee1ecb3f541bb4f9
-vendor/lib/libdapparamstorage.so|deae2cc2ad539cc0ec842c94bb2658084352bb57
-vendor/lib/libdeccfg.so|5f106d7549000e2c514daed542411f6ce3b296f9
-vendor/lib/vendor.dolby.hardware.dms@2.0.so|f396f196101d38575b79bee06403018acb6d23b6
-vendor/lib64/libdapparamstorage.so|783eb2b76ea43de6db979f1e0c427a5d6049c42f
-vendor/lib64/libdeccfg.so|e6aef698804d4ca8c3d7173432fbb6dbeb5b2dff
-vendor/lib64/libdlbdsservice.so|ccb0d22f8fa8a68812283c41cb5c195b0dd70eac|a1f03fe4882958b31e11d0c398673eb65f8c7d15
-vendor/lib64/vendor.dolby.hardware.dms@2.0-impl.so|5947de2cc48c50b7eae0092533e20278dfd6cd0d
-vendor/lib64/vendor.dolby.hardware.dms@2.0.so|9384291b27935dc6caad7a9206a16def21825e68
-
 # DRM
 vendor/bin/hw/vendor.qti.hardware.qseecom@1.0-service
 vendor/bin/qseecomd
