@@ -79,6 +79,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.drm-service.clearkey
 
+# Dolby
+$(call inherit-product, hardware/dolby/dolby.mk)
+
 # fastbootd
 PRODUCT_PACKAGES += \
     fastbootd
