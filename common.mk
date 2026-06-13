@@ -23,7 +23,8 @@ PRODUCT_PACKAGES += \
     libqcompostprocbundle \
     libqcomvisualizer \
     libqcomvoiceprocessing \
-    libvolumelistener
+    libvolumelistener \
+    tinymix
 
 # Audio configs
 PRODUCT_COPY_FILES += \
