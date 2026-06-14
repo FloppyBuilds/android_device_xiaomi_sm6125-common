@@ -1,2 +1,4 @@
 get_prop(system_app, vendor_persist_camera_prop)
 get_prop(system_app, vendor_aware_available_prop)
+get_prop(system_app, vendor_bluetooth_prop)
+hal_client_domain(system_app, vendor_hal_fm)

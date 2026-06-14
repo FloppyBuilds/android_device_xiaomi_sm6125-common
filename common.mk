@@ -90,7 +90,8 @@ PRODUCT_PACKAGES += \
 
 # FM
 PRODUCT_PACKAGES += \
-    FM2
+    RevampedFMRadio \
+    libqcomfmjni
 
 # Health
 PRODUCT_PACKAGES += \
